@@ -1,6 +1,3 @@
-const ADDRESSES = require('../helper/coreAssets.json')
-const { getLogs } = require('../helper/cache/getLogs')
-
 const CONFIG = [
   '0x814CC6B8fd2555845541FB843f37418b05977d8d', // instETH
   '0xc4181dC7BB31453C4A48689ce0CBe975e495321c', // inswETH
@@ -17,29 +14,14 @@ const CONFIG = [
   '0xC6Cc133477f63D9c0C53D1eF7DA83fa250778DB4', // inEIGEN
   '0x016E074Ca7304b815E29A9b9d8CF7a5603DA2A5f', // inBTC
   '0xeFaF124849b11b513C35350CD8643d29DE49c2ba', // insFRAX
+  '0xf9D9F828989A624423C48b95BC04E9Ae0ef5Ec97', // inwstETHs (Symbiotic)
 ]
 
-const symbioticVaults = [
-  '0xf9D9F828989A624423C48b95BC04E9Ae0ef5Ec97', // inwstETHs
-  '0x06824C27C8a0DbDe5F72f770eC82e3c0FD4DcEc3' // amphrLRT
-]
-
-const wstETH = ADDRESSES.ethereum.WSTETH
-
-const eventAbis = {
-  deposit: "event Deposit(address indexed sender, address indexed receiver, uint256 amount, uint256 iShares)",
-  withdraw:"event Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 amount, uint256 iShares)"
-}
+// Amphor Symbiotic LRT, an ERC4626 without getTotalDeposited
+const amphrLRT = '0x06824C27C8a0DbDe5F72f770eC82e3c0FD4DcEc3'
 
 const tvl = async (api) => {
-  for (const vault of symbioticVaults) {
-    const depositedLogs = await getLogs({ api, extraKey: `deposited-${vault}`, fromBlock: 20126194, target: vault, eventAbi: eventAbis.deposit, onlyArgs: true })
-    const withdrawLogs = await getLogs({ api, extraKey: `withdraw-${vault}`, fromBlock: 20126194, target: vault, eventAbi: eventAbis.withdraw, onlyArgs: true })
-    
-    depositedLogs.forEach(e => api.add(wstETH, e[2]));
-    withdrawLogs.forEach(e => api.add(wstETH, -e[3]));
-  }
-
+  await api.erc4626Sum({ calls: [amphrLRT], tokenAbi: 'address:asset', balanceAbi: 'uint256:totalAssets' })
   return api.erc4626Sum({ calls: CONFIG, tokenAbi: 'address:asset', balanceAbi: 'uint256:getTotalDeposited' })
 }
 
